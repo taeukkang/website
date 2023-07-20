@@ -1,0 +1,29 @@
+@import "../node_modules/bootstrap-icons/font/bootstrap-icons.min.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    font-family: "Schibsted Grotesk", "Noto Sans KR", sans-serif;
+    @apply bg-gray-100;
+}
+
+.link-icons {
+    @apply hover:text-blue-600;
+}
+
+.crazy-pfp-motion {
+    -webkit-transition: -webkit-transform 0.2s ease-out;
+    -moz-transition: -moz-transform 0.2s ease-out;
+    -o-transition: -o-transform 0.2s ease-out;
+    -ms-transition: -ms-transform 0.2s ease-out;
+    transition: transform 0.2s ease-out;
+
+}
+.crazy-pfp-motion:hover {
+    -webkit-transform: scale(2);
+    -moz-transform: scale(2);
+    -o-transform: scale(2);
+    transform: scale(2);
+}

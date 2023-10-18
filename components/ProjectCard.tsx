@@ -8,6 +8,7 @@ type ProjectCard = {
   imgSrc?: string;
   liveUrl?: string;
   linkText?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   repoData?: any;
 };
 

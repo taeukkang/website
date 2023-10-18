@@ -59,7 +59,7 @@ export function SocialIconClient({ kind, href, size = 8 }: SocialIconProps) {
     if (kind === "emailEncoded") {
       setHref_("mailto:" + atob(href || ""));
     }
-  }, [href_]);
+  }, [kind, href]);
 
   const Icon = components[kind];
 

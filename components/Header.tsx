@@ -4,6 +4,8 @@ import Link from "./Link";
 import MobileNav from "./MobileNav";
 import ThemeSwitch from "./ThemeSwitch";
 import SearchButton from "./SearchButton";
+import { allBlogs } from "contentlayer/generated";
+import { allCoreContent } from "pliny/utils/contentlayer";
 
 const Header = () => {
   return (
@@ -21,7 +23,14 @@ const Header = () => {
       </div>
       <div className="flex items-center leading-5 space-x-4 sm:space-x-6">
         {headerNavLinks
-          .filter((link) => link.href !== "/")
+          .filter((link) => {
+            // Hide the Blog link if there are no posts
+            if (link.href == "/blog" && allCoreContent(allBlogs).length == 0) {
+              return false;
+            }
+
+            return link.href !== "/";
+          })
           .map((link) => (
             <Link
               key={link.title}

@@ -53,22 +53,14 @@ export const SocialIcon = ({ kind, href, size = 8 }: SocialIconProps) => {
 // This component exists for rudimentary spam protection, so that
 // the email gets decoded client-side, not server-side
 export function SocialIconClient({ kind, href, size = 8 }: SocialIconProps) {
-  const [href_, setHref_] = useState(href);
-
-  useEffect(() => {
-    if (kind === "emailEncoded") {
-      setHref_("mailto:" + atob(href || ""));
-    }
-  }, [kind, href]);
-
   const Icon = components[kind];
 
   return (
     <a
-      className="text-sm text-gray-500 transition hover:text-gray-600"
+      className="text-sm text-gray-500 transition hover:text-gray-600 cursor-pointer"
       target="_blank"
       rel="noopener noreferrer"
-      href={href_}
+      onClick={() => prompt("View email address", atob(href || ""))}
     >
       <span className="sr-only">{kind}</span>
       <Icon

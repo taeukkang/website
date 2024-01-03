@@ -7,12 +7,13 @@ import { sortPosts } from "pliny/utils/contentlayer";
 import { useState } from "react";
 
 export default function RecentUpdate() {
+  const [updateIndex, setUpdateIndex] = useState(0);
+
   if (allUpdates.length === 0) {
     return <div>No updates found.</div>;
   }
 
   const sortedUpdates = sortPosts(allUpdates);
-  const [updateIndex, setUpdateIndex] = useState(0);
 
   const handleGoBack = () => {
     setUpdateIndex((updateIndex + 1) % sortedUpdates.length);

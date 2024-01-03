@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function AuthorLayout({ children, content }: Props) {
-  const { name, avatar, occupation, company, emailEncoded, twitter, linkedin, github } = content;
+  const { name, avatar, occupation, headline, emailEncoded, twitter, linkedin, github } = content;
 
   return (
     <>
@@ -27,7 +27,7 @@ export default function AuthorLayout({ children, content }: Props) {
             )}
             <h3 className="pb-2 pt-4 text-2xl font-bold leading-8 tracking-tight">{name}</h3>
             <div className="text-gray-500 dark:text-gray-400">{occupation}</div>
-            <div className="text-gray-500 dark:text-gray-400">{company}</div>
+            <div className="text-gray-500 dark:text-gray-400">{headline}</div>
             <div className="flex space-x-3 pt-6">
               <SocialIconClient kind="emailEncoded" href={`${emailEncoded}`} />
               <SocialIcon kind="github" href={github} />

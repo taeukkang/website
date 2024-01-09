@@ -28,7 +28,7 @@ interface LayoutProps {
 }
 
 export default function PostLayout({ content, authorDetails, next, prev, children }: LayoutProps) {
-  const { filePath, path, slug, date, title, tags } = content;
+  const { filePath, path, slug, date, title, tags, draft } = content;
   const basePath = path.split("/")[0];
 
   return (
@@ -99,7 +99,7 @@ export default function PostLayout({ content, authorDetails, next, prev, childre
                   className="pb-6 pt-6 text-center text-gray-700 dark:text-gray-300"
                   id="comment"
                 >
-                  <Comments slug={slug} />
+                  <Comments slug={slug} draft={draft} />
                 </div>
               )}
             </div>

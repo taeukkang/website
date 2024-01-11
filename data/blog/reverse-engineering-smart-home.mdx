@@ -1,28 +1,35 @@
 ---
 title: Reverse Engineering a Proprietary Smart Home Protocol
-date: 2023-01-08
+date: 2024-01-08
 tags:
   - smart-home
   - reverse-engineering
 draft: false
 summary: Taking control of my smart home by reverse engineering a closed-source and proprietary smart home integration. All of this to control the lights from the comfort of my bed.
 ---
+
 # Motivation
+
 My first encounter with smart home devices was in 2018 when I installed a [Sonoff Smart Relay](https://sonoff.tech/product/diy-smart-switches/basicr4/) in a "stupid" light fixture to turn it "smart" so that I can turn lights off in my bed without having to get up. Sonoff has an [IFTTT integration](https://ifttt.com/ewelink), which can then be used to create a webhook to directly control the lights programmatically. I could then control the light with my smart speakers (Google Home and Amazon Alexa), my phone (using iOS Shortcuts), and my computer (a custom [Touch Bar button](https://docs.folivora.ai/docs/402_touch_bar_basics.html) with BetterTouchTool).
 
-Now, I moved and have been living in a ~~ubiquitous~~ Internet of Things-connected "Smart Home" equipped with [Commax](https://www.commax.com/index?lang=en) devices. Capacitive touch light switches, thermostats, and sensors are all controllable remotely. Unfortunately, the only way to control these "smart" devices are to a) walk up to the device and control it myself, or b) use a clunky Android or iOS app, or c) connect it to Google Home *(more proprietary protocols!)*.
+Now, I moved and have been living in a ~~ubiquitous~~ Internet of Things-connected "Smart Home" equipped with [Commax](https://www.commax.com/index?lang=en) devices. Capacitive touch light switches, thermostats, and sensors are all controllable remotely. Unfortunately, the only way to control these "smart" devices are to a) walk up to the device and control it myself, or b) use a clunky Android or iOS app, or c) connect it to Google Home _(more proprietary protocols!)_.
 
 I wanted a simple API endpoint that I could ping to control these devices, so it meant that I had to reverse engineer one of the existing control points.
+
 # Technical Background
+
 Devices communicate with the wall pad over serial (RS-485) and the wall pad is communicated to the Cloud™ over the internet. [Existing attempts](https://github.com/zooil/wallpad/blob/master/js/commax_serial.js) hijacked the serial communication between devices and the wall pad to directly interface with the device. This method is reliable, because it does not depend on the Internet or a third-party server to work; everything is done locally! But it also meant that I had to install a clunky serial to RJ45/USB device under the sink. So why not use the existing protocol that the mobile app uses to communicate with the home?
 
-The first instinct was to use Wireshark and to inspect the packets that the app generates when I control a device, but that was out the window because I assumed that the traffic was encrypted (hopefully). *Spoiler: it was.*
+The first instinct was to use Wireshark and to inspect the packets that the app generates when I control a device, but that was out the window because I assumed that the traffic was encrypted (hopefully). _Spoiler: it was._
+
 # Reverse Engineering
-The path that I did go down was to disassemble the Android APK to inspect how the app was generating requests. Android APKs are available in [one of](https://apkcombo.com/) [the many](https://www.apkmirror.com/) APK mirror sites *(make sure to click the most boring looking download button, or else it's an ad!)*. 
+
+The path that I did go down was to disassemble the Android APK to inspect how the app was generating requests. Android APKs are available in [one of](https://apkcombo.com/) [the many](https://www.apkmirror.com/) APK mirror sites _(make sure to click the most boring looking download button, or else it's an ad!)_.
 
 To decompile the app, several tools are available: [Apktool](https://apktool.org/) works locally for `.apk` files and [Decompiler.com](https://www.decompiler.com/) works online for several different languages. I chose to use Decompiler.com because I didn't have to download anything.
 
-With the decompiled app, the first thing that I searched for was the "base URL" of the API by querying `https://`, which found `HttpConstant.java`. 
+With the decompiled app, the first thing that I searched for was the "base URL" of the API by querying `https://`, which found `HttpConstant.java`.
+
 ```java
 // HttpConstant.java
 package com.commax.protocol.http;
@@ -42,22 +49,26 @@ This was a good starting point with helpfully labeled constants. The next thing 
 // HttpManager.java
 public void authorize(String str, String str2, String str3, HttpResponse httpResponse) {
 	String uri = Uri.parse((((this.f11495a + HttpConstant.API_AUTH) + "?client_id=" + this.f11496b) + "&client_secret=" + this.f11497c) + "&grant_type=password").buildUpon().appendQueryParameter("username", str).appendQueryParameter("password", Uri.encode(str2)).build().toString();
-	
+
 	if (TextUtils.isEmpty(str3)) {
 		Context context = f11494f;
 		CmxAesPreferences.setString(context, Constant.KEY_DEVICE_UUID, DeviceTool.getDeviceUUID(context));
 	}
-	
+
 	addToRequestQueue(new k(0, uri, (JSONObject) null, httpResponse.listener, httpResponse.errorListener));
 }
 ```
+
 Looks like a standard username and password authentication! After tracking down the cryptic variables and replacing it with string literals, I was able to recreate the following HTTP GET call for authentication:
+
 ```
 /oauth/authorize?client_id=APP-AND-com.commax.ipiot&client_secret={{client_secret}}&grant_type=password&username={{username}}&password={{password}}
 ```
-Somewhat concerning that the password is sent as part of the query string (*use different passwords for each services!*), but that's a story for a different time.
+
+Somewhat concerning that the password is sent as part of the query string (_use different passwords for each services!_), but that's a story for a different time.
 
 An instance of a class `k` is passed into `addToRequestQueue()`. `k` is a wrapper class that applies HTTP headers to the auth request: the device OS, UUID, and version (all were needed to receive a successful response).
+
 ```java
 class k extends CustomJsonObjectRequest {
     k(int i2, String str, JSONObject jSONObject, Response.Listener listener, Response.ErrorListener errorListener) {
@@ -66,7 +77,7 @@ class k extends CustomJsonObjectRequest {
 
     public Map<String, String> getHeaders() throws AuthFailureError {
         HashMap hashMap = new HashMap();
-        
+
         // set header cmx-dvc-os
         hashMap.put(HttpConstant.CMX_DEVICE_OS, HttpConstant.DEVICE_OS);
 
@@ -75,13 +86,14 @@ class k extends CustomJsonObjectRequest {
 
         // set header cmx-app-version
         hashMap.put(HttpConstant.CMX_APP_VERSION, HttpConstant.APP_VERSION);
-        
+
         return hashMap;
     }
 }
 ```
 
 And with the headers set and valid endpoint query parameters inserted, the GET request returned a JSON with the Bearer access and refresh tokens as well as the base URLs for other services (e.g., the gateway server) that will be relevant later.
+
 ```
 // Response
 {
@@ -95,6 +107,7 @@ And with the headers set and valid endpoint query parameters inserted, the GET r
 ```
 
 Moving on to the fun part now: how can I actually switch off a light? A helpfully named `deviceControl()` function was within the same file as `authorize()`, with the following snippet:
+
 ```java
 // HttpManager.java
 public void deviceControl(AccountData accountData, GatewayData gatewayData, JSONObject jSONObject, HttpResponse httpResponse) {
@@ -104,7 +117,7 @@ public void deviceControl(AccountData accountData, GatewayData gatewayData, JSON
 }
 ```
 
-It looks like it's making a POST request with a JSON body attached to it, but I needed to find out two things: the "gateway" and the "command." 
+It looks like it's making a POST request with a JSON body attached to it, but I needed to find out two things: the "gateway" and the "command."
 
 ```
 {
@@ -125,6 +138,7 @@ It looks like it's making a POST request with a JSON body attached to it, but I 
 ```
 
 The gateway is what connects the outside world (the cloud) to the inside world (home wallpad). Getting the gateway information was easy with the `gatewayInfo()` function:
+
 ```java
 // HttpManager.java
 public void gatewayInfo(AccountData accountData, HttpResponse httpResponse) {
@@ -136,6 +150,7 @@ public void gatewayInfo(AccountData accountData, HttpResponse httpResponse) {
 ```
 
 I tried pinging `/v1/gateways` with the `Authorization` header set to the auth token from earlier, which returned the gateway information:
+
 ```
 {
 	"gateways": {
@@ -151,9 +166,11 @@ I tried pinging `/v1/gateways` with the `Authorization` header set to the auth t
 	}
 }
 ```
+
 The `gatewayNo` is half of the piece needed to control a device.
 
 Right above the `gatewayInfo()` function, `gatewayDeviceInfo()` was defined, so I also pinged that endpoint and received a JSON with all devices in the house.
+
 ```java
 public void gatewayDeviceInfo(AccountData accountData, GatewayData gatewayData, HttpResponse httpResponse) {
     String str = accountData.iotServer + "/v1/gateways/" + gatewayData.gatewayNo;
@@ -163,6 +180,7 @@ public void gatewayDeviceInfo(AccountData accountData, GatewayData gatewayData, 
 ```
 
 A portion of the JSON response:
+
 ```
 {
 	"information": {
@@ -186,6 +204,7 @@ A portion of the JSON response:
 	"nickname": "Living Room 1"
 }
 ```
+
 <details>
 <summary>View full JSON response</summary>
 ```
@@ -288,9 +307,10 @@ A portion of the JSON response:
 ```
 </details>
 
-An observation to make from the response is that devices have root and sub devices. For example, a living room thermostat is a root device, and under it, it can have "sub devices" to set the operation mode or temperature. 
+An observation to make from the response is that devices have root and sub devices. For example, a living room thermostat is a root device, and under it, it can have "sub devices" to set the operation mode or temperature.
 
 Now, time to figure out the command protocol. I started to search for terms like `lights`, `switches`, and relevant synonyms and discovered relevant views for dimming switches.
+
 ```java
 // SceneViewHolder.java
 public void setDimming(Context context, SceneViewHolderData sceneViewHolderData, CmxValueCtrlDialog.Type type) {
@@ -300,6 +320,7 @@ public void setDimming(Context context, SceneViewHolderData sceneViewHolderData,
 ```
 
 And further investigations led to a file that directly relates to light switches:
+
 ```java
 // LightDimmmerDs485Activity.java
 public /* synthetic */ void r(View view) {
@@ -319,22 +340,25 @@ public /* synthetic */ void r(View view) {
 ```
 
 This function is linked to the view that controls a light dimmer. Notice that the call to `deviceControl()` only has three parameters, which was not what I saw earlier. Tracing through this function, I found another function named `deviceControl()`:
+
 ```java
 // BaseControlActivity.java
 public void deviceControl(Context context, RootDeviceData rootDeviceData, ArrayList<SubDeviceData> arrayList) {
     DeviceControl.getInstance().set(context, rootDeviceData, arrayList);
 }
 ```
+
 Guessing from the parameters, to control a device, the root and sub devices are needed, where each device unit (like a light switch) is a sub device associated with a root device.
 
 So how do the two different `deviceControl()` functions link with each other? Searching for calls to `deviceControl()` from `HttpManager.java`, one of them was under `DeviceControl.java`.
+
 ```java
 // DeviceControl.java
 /* access modifiers changed from: private */
 public /* synthetic */ void o(Context context, RootDeviceData rootDeviceData, ArrayList arrayList, boolean z2) {
     if (z2) {
     HttpManager.getInstance(context).deviceControl(AccountData.getInstance(), GatewayData.getInstance(), rootDeviceData.setJson(arrayList), s());
-    
+
 	    Activity activity = (Activity) context;
         if (!activity.isFinishing()) {
             CmxProgressCgp.getInstance().show(activity, ((SubDeviceData) arrayList.get(0)).subUuid);
@@ -342,9 +366,11 @@ public /* synthetic */ void o(Context context, RootDeviceData rootDeviceData, Ar
     }
 }
 ```
+
 Four parameters are passed in: the `AccountData`, the `GatewayData`, and the return value from `rootDeviceData.setJson(arrayList)`, and `s()` (with type `HttpResponse`). The first two are fairly self-explanatory, but `.setJson()` is new (I figured that `s` is not too relevant).
 
 Below is the `.setJson()` function:
+
 ```java
 // RootDeviceData.java
 @NonNull
@@ -374,6 +400,7 @@ public JSONObject setJson(ArrayList<SubDeviceData> arrayList) {
 This function generates the command `object` for the device control request A root `jSONObject` is created with three keys: `rootUuid`, `rootDevice`, and `nickname`. Then, a `jSONArray` is created and loops through the `arrayList` of `SubDeviceData` and puts each element in the `arrayList` into the `jSONArray`. Finally, the `jSONArray` is added to the `jSONObject` with the key `Cgp.SUB_DEVICE`.
 
 Now, putting everything together, a stub JSON body looks something like:
+
 ```
 {
 	"commands": {
@@ -399,7 +426,8 @@ Now, putting everything together, a stub JSON body looks something like:
 
 These values look familiar—recall the gateway information endpoint.
 
-Replacing the values for that of a light switch (and changing the value from `off` to `on`) from the gateway information into the device control body, I could generate this JSON (*I did replace the UUIDs with random ones*).
+Replacing the values for that of a light switch (and changing the value from `off` to `on`) from the gateway information into the device control body, I could generate this JSON (_I did replace the UUIDs with random ones_).
+
 ```
 {
 	"commands": {
@@ -431,6 +459,7 @@ Replacing the values for that of a light switch (and changing the value from `of
 ```
 
 Going back to the `deviceControl()` from `HttpManager.java`, an authenticated HTTP POST request to `/v1/command` returned...
+
 ```
 {
 	"commands": {

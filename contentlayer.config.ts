@@ -1,4 +1,4 @@
-import { defineDocumentType, ComputedFields, makeSource } from "contentlayer/source-files";
+import { defineDocumentType, ComputedFields, makeSource } from "contentlayer2/source-files";
 import { writeFileSync } from "fs";
 import readingTime from "reading-time";
 import GithubSlugger from "github-slugger";
@@ -156,8 +156,8 @@ export default makeSource({
       rehypeSlug,
       rehypeAutolinkHeadings,
       rehypeKatex,
-      [rehypeCitation, { path: path.join(root, "data") }],
-      [rehypePrismPlus, { defaultLanguage: "js", ignoreMissing: true }],
+      [rehypeCitation, { path: path.join(root, 'data') }],
+      [rehypePrismPlus, { defaultLanguage: 'js', ignoreMissing: true }],
       rehypePresetMinify,
     ],
   },

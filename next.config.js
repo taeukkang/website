@@ -1,4 +1,4 @@
-const { withContentlayer } = require("next-contentlayer");
+const { withContentlayer } = require("next-contentlayer2");
 
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
@@ -64,9 +64,6 @@ module.exports = () => {
     pageExtensions: ["ts", "tsx", "js", "jsx", "md", "mdx"],
     eslint: {
       dirs: ["app", "components", "layouts", "scripts"],
-    },
-    images: {
-      domains: ["picsum.photos"],
     },
     async headers() {
       return [

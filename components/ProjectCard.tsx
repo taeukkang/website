@@ -75,11 +75,11 @@ async function ProjectCard({
                     <FaGithub />
                   </Link>
                 </div>
-                {
-                  repoData.stargazers_count > 0 && (<div className="ml-2">
+                {repoData.stargazers_count > 0 && (
+                  <div className="ml-2">
                     <Link href={repoData.html_url}>⭐️ {repoData.stargazers_count}</Link>
-                  </div>)
-                }
+                  </div>
+                )}
               </div>
             )}
           </div>

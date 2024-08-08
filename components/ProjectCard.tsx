@@ -21,7 +21,7 @@ async function ProjectCard({
   linkText,
 }: ProjectCard) {
   return (
-    <div className="md max-w-[544px] p-4 md:w-1/2">
+    <div className="md max-w-[544px] p-4 md:w-1/2 sm:w-full">
       <div
         className={`h-full overflow-hidden rounded-md border-2 border-gray-200 border-opacity-60 dark:border-gray-700`}
       >
@@ -75,9 +75,11 @@ async function ProjectCard({
                     <FaGithub />
                   </Link>
                 </div>
-                <div className="ml-2">
-                  <Link href={repoData.html_url}>⭐️ {repoData.stargazers_count}</Link>
-                </div>
+                {
+                  repoData.stargazers_count > 0 && (<div className="ml-2">
+                    <Link href={repoData.html_url}>⭐️ {repoData.stargazers_count}</Link>
+                  </div>)
+                }
               </div>
             )}
           </div>

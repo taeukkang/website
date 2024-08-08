@@ -5,6 +5,14 @@ import { MDXLayoutRenderer } from "pliny/mdx-components";
 import { components } from "@/components/MDXComponents";
 import { sortPosts } from "pliny/utils/contentlayer";
 import { useState } from "react";
+import siteMetadata from "@/data/siteMetadata";
+
+const postDateTemplate: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+};
 
 export default function RecentUpdate() {
   const [updateIndex, setUpdateIndex] = useState(0);
@@ -25,7 +33,7 @@ export default function RecentUpdate() {
       <div>
         <div className="flex justify-between">
           <p className="italic my-0">
-            From <time>{sortedUpdates[updateIndex].date}</time>...
+            From <time>{new Date(sortedUpdates[updateIndex].date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}</time>...
           </p>
           <button
             onClick={handleGoBack}

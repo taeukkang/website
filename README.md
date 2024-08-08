@@ -10,3 +10,4 @@ pnpm run dev
 
 ## License
 MIT License
+Based on the [tailwind-nextjs-starter-blog](https://github.com/timlrx/tailwind-nextjs-starter-blog) template.

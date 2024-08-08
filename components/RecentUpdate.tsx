@@ -33,7 +33,14 @@ export default function RecentUpdate() {
       <div>
         <div className="flex justify-between">
           <p className="italic my-0">
-            From <time>{new Date(sortedUpdates[updateIndex].date).toLocaleDateString(siteMetadata.locale, postDateTemplate)}</time>...
+            From{" "}
+            <time>
+              {new Date(sortedUpdates[updateIndex].date).toLocaleDateString(
+                siteMetadata.locale,
+                postDateTemplate
+              )}
+            </time>
+            ...
           </p>
           <button
             onClick={handleGoBack}

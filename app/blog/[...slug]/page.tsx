@@ -20,11 +20,9 @@ const layouts = {
   PostBanner,
 };
 
-export async function generateMetadata(
-  props: {
-    params: Promise<{ slug: string[] }>;
-  }
-): Promise<Metadata | undefined> {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata | undefined> {
   const params = await props.params;
   const slug = decodeURI(params.slug.join("/"));
   const post = allBlogs.find((p) => p.slug === slug);
